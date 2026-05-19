@@ -61,7 +61,7 @@ export default function HeroSection() {
 
         <div className="pointer-events-auto max-w-3xl rounded-3xl bg-white/40 p-5 backdrop-blur-xl dark:bg-black/30 sm:p-8">
 
-          <h1 className="text-2xl font-bold leading-tight sm:text-4xl md:text-6xl lg:text-7xl">
+          <h1 className="text-2xl font-bold leading-tight sm:text-4xl md:text-6xl ">
             Build minimal forms
             <br />
             that give you{" "}
