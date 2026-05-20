@@ -1,10 +1,9 @@
 "use client"
 
-import { ContainerTextFlip } from "@/components/ui/container-text-flip"
-
-import { ChartBarDefault } from "@/components/language-chart"
+import { ContainerTextFlip } from "@/components/ui/container-text-flip" 
 import { ChartPieLabel } from "@/components/categories"
-
+import { RadioGroupFieldset } from "@/components/radio"
+import { TableDemo } from "@/components/tableex"
 import {
   LearnersBarChart,
   UsersLineChart,
@@ -20,8 +19,10 @@ export default function HeroSection() {
       <div className="absolute inset-0 z-0 grid grid-cols-1 gap-4 p-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 lg:p-6">
 
         {/* MOBILE + TABLET + DESKTOP */}
-        <div className="h-[180px] rounded-2xl bg-black/5 p-2 sm:h-[220px] dark:bg-white/5 lg:h-[260px]">
-          <ChartBarDefault />
+        <div className="h-[180px] rounded-2xl bg-black/5 p-2 sm:h-[220px] dark:bg-white/5 lg:h-[300px]">
+          <div className="h-full w-full">
+            <RadioGroupFieldset />
+          </div>
         </div>
 
         <div className="h-[180px] rounded-2xl bg-black/5 p-2 sm:h-[220px] dark:bg-white/5 lg:h-[260px]">
@@ -33,13 +34,13 @@ export default function HeroSection() {
           <LearnersBarChart />
         </div>
 
-        <div className="hidden h-[180px] rounded-2xl bg-black/5 p-2 sm:block sm:h-[220px] dark:bg-white/5 lg:h-[260px]">
-          <UsersLineChart />
+        <div className="hidden h-[180px] rounded-2xl bg-black/5 p-2 dark:bg-white/5 lg:block lg:h-[260px]">
+          <SkillsRadarChart />
         </div>
 
         {/* DESKTOP ONLY */}
-        <div className="hidden h-[180px] rounded-2xl bg-black/5 p-2 dark:bg-white/5 lg:block lg:h-[260px]">
-          <SkillsRadarChart />
+        <div className="hidden h-[180px] rounded-2xl bg-black/5 p-2 sm:block sm:h-[220px] dark:bg-white/5 lg:h-[260px]">
+          <TableDemo />
         </div>
 
         <div className="hidden h-[180px] rounded-2xl bg-black/5 p-2 dark:bg-white/5 lg:block lg:h-[260px]">
