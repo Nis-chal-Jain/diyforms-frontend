@@ -55,6 +55,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Field,
   FieldError,
   FieldGroup,
@@ -108,6 +118,9 @@ export function DashboardView() {
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [actionSlug, setActionSlug] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [confirmForm, setConfirmForm] = useState<FormSummary | null>(null)
+  const [confirmAction, setConfirmAction] = useState<"stop" | "resume" | "delete" | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const loadForms = useCallback(async () => {
     setFormsLoading(true)
@@ -126,77 +139,48 @@ export function DashboardView() {
     loadForms()
   }, [loadForms])
 
-  async function handleStopResponses(form: FormSummary) {
-    if (form.settings.status === "archived") return
-    if (
-      !window.confirm(
-        `Stop responses for "${form.title}"? The form will be archived and no longer accept submissions.`
-      )
-    ) {
-      return
-    }
+  function openConfirmDialog(
+    action: "stop" | "resume" | "delete",
+    form: FormSummary
+  ) {
+    setConfirmForm(form)
+    setConfirmAction(action)
+    setConfirmOpen(true)
+  }
 
-    setActionSlug(form.formSlug)
+  function closeConfirmDialog() {
+    setConfirmOpen(false)
+    setConfirmAction(null)
+    setConfirmForm(null)
+  }
+
+  async function executeConfirmAction() {
+    if (!confirmForm || !confirmAction) return
+
+    setConfirmOpen(false)
+    setActionSlug(confirmForm.formSlug)
     setActionError(null)
+
     try {
-      await stopFormResponses(form.formSlug)
+      if (confirmAction === "stop") {
+        await stopFormResponses(confirmForm.formSlug)
+      } else if (confirmAction === "resume") {
+        await resumeFormResponses(confirmForm.formSlug)
+      } else if (confirmAction === "delete") {
+        await deleteForm(confirmForm.formSlug)
+        setForms((prev) =>
+          prev.filter((form) => form.formSlug !== confirmForm.formSlug)
+        )
+        setActionSlug(null)
+        return
+      }
+
       await loadForms()
     } catch (err) {
       setActionError(
         err instanceof ApiRequestError
           ? err.message
-          : "Failed to stop responses."
-      )
-    } finally {
-      setActionSlug(null)
-    }
-  }
-
-  async function handleResumeResponses(form: FormSummary) {
-    if (form.settings.status !== "archived") return
-    if (
-      !window.confirm(
-        `Resume responses for "${form.title}"? The form will accept submissions again.`
-      )
-    ) {
-      return
-    }
-
-    setActionSlug(form.formSlug)
-    setActionError(null)
-    try {
-      await resumeFormResponses(form.formSlug)
-      await loadForms()
-    } catch (err) {
-      setActionError(
-        err instanceof ApiRequestError
-          ? err.message
-          : "Failed to resume responses."
-      )
-    } finally {
-      setActionSlug(null)
-    }
-  }
-
-  async function handleDeleteForm(form: FormSummary) {
-    if (
-      !window.confirm(
-        `Delete "${form.title}" permanently? This cannot be undone.`
-      )
-    ) {
-      return
-    }
-
-    setActionSlug(form.formSlug)
-    setActionError(null)
-    try {
-      await deleteForm(form.formSlug)
-      setForms((prev) => prev.filter((f) => f.formSlug !== form.formSlug))
-    } catch (err) {
-      setActionError(
-        err instanceof ApiRequestError
-          ? err.message
-          : "Failed to delete form."
+          : `Failed to ${confirmAction} responses.`
       )
     } finally {
       setActionSlug(null)
@@ -281,6 +265,46 @@ export function DashboardView() {
         onSubmit={handleVerifyOtp}
         onResend={resendOtp}
       />
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!open) closeConfirmDialog()
+          setConfirmOpen(open)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction === "delete"
+                ? "Delete form"
+                : confirmAction === "stop"
+                ? "Stop responses"
+                : "Resume responses"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction === "delete"
+                ? `Delete "${confirmForm?.title}" permanently? This cannot be undone.`
+                : confirmAction === "stop"
+                ? `Stop responses for "${confirmForm?.title}"? The form will be archived and no longer accept submissions.`
+                : `Resume responses for "${confirmForm?.title}"? The form will accept submissions again.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant={confirmAction === "delete" ? "destructive" : "default"}
+              onClick={executeConfirmAction}
+            >
+              {confirmAction === "delete"
+                ? "Delete"
+                : confirmAction === "stop"
+                ? "Stop"
+                : "Resume"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -514,7 +538,7 @@ export function DashboardView() {
                               size="sm"
                               variant="destructive"
                               disabled={actionSlug === form.formSlug}
-                              onClick={() => handleResumeResponses(form)}
+                              onClick={() => openConfirmDialog("resume", form)}
                               title="Resume responses"
                             >
                               {actionSlug === form.formSlug ? (
@@ -529,7 +553,7 @@ export function DashboardView() {
                               size="sm"
                               variant="destructive"
                               disabled={actionSlug === form.formSlug}
-                              onClick={() => handleStopResponses(form)}
+                              onClick={() => openConfirmDialog("stop", form)}
                               title="Stop responses"
                             >
                               {actionSlug === form.formSlug ? (
@@ -569,7 +593,7 @@ export function DashboardView() {
                             size="sm"
                             variant="destructive"
                             disabled={actionSlug === form.formSlug}
-                            onClick={() => handleDeleteForm(form)}
+                            onClick={() => openConfirmDialog("delete", form)}
                           >
                             {actionSlug === form.formSlug ? (
                               <Loader2Icon className="animate-spin" />

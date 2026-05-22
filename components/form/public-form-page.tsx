@@ -23,6 +23,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { FieldError } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -224,50 +234,77 @@ export function PublicFormPage({ slug }: PublicFormPageProps) {
         )}
 
         {accessState === "ready" && form && (
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle>{form.title}</CardTitle>
-                {form.settings.restricted && (
-                  <Badge variant="outline">Restricted</Badge>
-                )}
-              </div>
-              {form.description && (
-                <CardDescription>{form.description}</CardDescription>
-              )}
-            </CardHeader>
+          <>
+            <AlertDialog
+              open={submitted}
+              onOpenChange={(open) => {
+                if (!open) setSubmitted(false)
+              }}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Response submitted</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Thank you! Your response has been submitted successfully.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Close</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="outline"
+                    onClick={() => setSubmitted(false)}
+                  >
+                    Continue
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
-            {submitted ? (
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Thank you! Your response has been submitted successfully.
-                </p>
-              </CardContent>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                <CardContent className="flex flex-col gap-6">
-                  {[...form.questions]
-                    .sort((a, b) => a.order - b.order)
-                    .map((question) => (
-                      <QuestionField
-                        key={question._id}
-                        question={question}
-                        value={answers[question._id]}
-                        onChange={(v) => setAnswer(question._id, v)}
-                        disabled={submitting}
-                      />
-                    ))}
-                  {submitError && <FieldError>{submitError}</FieldError>}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center gap-2">
+                  <CardTitle>{form.title}</CardTitle>
+                  {form.settings.restricted && (
+                    <Badge variant="outline">Restricted</Badge>
+                  )}
+                </div>
+                {form.description && (
+                  <CardDescription>{form.description}</CardDescription>
+                )}
+              </CardHeader>
+
+              {submitted ? (
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Thank you! Your response has been submitted successfully.
+                  </p>
                 </CardContent>
-                <CardFooter>
-                  <Button type="submit" disabled={submitting} className="w-full">
-                    {submitting && <Loader2Icon className="animate-spin" />}
-                    Submit
-                  </Button>
-                </CardFooter>
-              </form>
-            )}
-          </Card>
+              ) : (
+                <form onSubmit={handleSubmit}>
+                  <CardContent className="flex flex-col gap-6">
+                    {[...form.questions]
+                      .sort((a, b) => a.order - b.order)
+                      .map((question) => (
+                        <QuestionField
+                          key={question._id}
+                          question={question}
+                          value={answers[question._id]}
+                          onChange={(v) => setAnswer(question._id, v)}
+                          disabled={submitting}
+                        />
+                      ))}
+                    {submitError && <FieldError>{submitError}</FieldError>}
+                  </CardContent>
+                  <CardFooter>
+                    <Button type="submit" disabled={submitting} className="w-full">
+                      {submitting && <Loader2Icon className="animate-spin" />}
+                      Submit
+                    </Button>
+                  </CardFooter>
+                </form>
+              )}
+            </Card>
+          </>
         )}
       </div>
     </div>

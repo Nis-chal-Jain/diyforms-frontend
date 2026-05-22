@@ -28,13 +28,15 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -309,16 +311,19 @@ export default function CreateFormPage() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
-        <Dialog open={state === "success"} onOpenChange={(open) => {
-          if (!open) router.push("/")
-        }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Form Created Successfully!</DialogTitle>
-              <DialogDescription>
+        <AlertDialog
+          open={state === "success"}
+          onOpenChange={(open) => {
+            if (!open) router.push("/")
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Form Created Successfully!</AlertDialogTitle>
+              <AlertDialogDescription>
                 Your form is ready to be shared. Copy the link below to start collecting responses.
-              </DialogDescription>
-            </DialogHeader>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
 
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-3">
               <code className="flex-1 text-sm text-muted-foreground">
@@ -338,16 +343,17 @@ export default function CreateFormPage() {
               </Button>
             </div>
 
-            <DialogFooter>
-              <Button
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+              <AlertDialogAction
                 variant="outline"
                 onClick={() => router.push("/")}
               >
                 Go to Dashboard
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {errors.submit && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
