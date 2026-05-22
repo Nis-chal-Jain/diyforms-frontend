@@ -10,6 +10,7 @@ import type {
   FormAnswerPayload,
   FormDetail,
   FormQuestion,
+  FormSettings,
   FormSummary,
 } from "@/types/form"
 import type { ApiErrorBody, ApiSuccess } from "@/types/user"
