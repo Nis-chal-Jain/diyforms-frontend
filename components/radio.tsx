@@ -20,7 +20,7 @@ export function RadioGroupFieldset() {
         Select one of the options below to indicate your preferred chatbot.
       </FieldDescription>
 
-      <RadioGroup defaultValue="monthly" className="m-2">
+      <RadioGroup defaultValue="monthly" className="m-1">
         <Field orientation="horizontal">
           <RadioGroupItem value="monthly" id="plan-monthly" />
           <FieldLabel htmlFor="plan-monthly" className="font-normal">

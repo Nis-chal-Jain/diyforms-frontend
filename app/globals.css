@@ -74,8 +74,8 @@
   --muted-foreground: rgb(136, 136, 136);
   --accent: rgb(51, 51, 51);
   --accent-foreground: rgb(193, 193, 193);
-  --destructive: rgb(95, 135, 135);
-  --destructive-foreground: rgb(18, 17, 19);
+  --destructive: rgb(219, 73, 73);
+  --destructive-foreground: rgb(229, 229, 230);
   --border: rgb(34, 34, 34);
   --input: rgb(34, 34, 34);
   --ring: rgb(231, 138, 83);
@@ -179,5 +179,9 @@
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
+  }
+  button:not([disabled]),
+    [role="button"]:not([disabled]) {
+    cursor: pointer;
   }
 }
