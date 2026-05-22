@@ -11,6 +11,8 @@ import {
   MessageSquareIcon,
   OctagonPauseIcon,
   PlayIcon,
+  Edit2Icon,
+  PlusIcon,
   Trash2Icon,
   UserIcon,
 } from "lucide-react"
@@ -427,12 +429,20 @@ export function DashboardView() {
                 All forms you have created ({forms.length})
               </CardDescription>
             </div>
-            <Button size="sm" variant="outline" asChild>
-              <Link href="/responses">
-                <MessageSquareIcon />
-                View responses
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/create">
+                  <PlusIcon />
+                  Create form
+                </Link>
+              </Button>
+              <Button size="sm" variant="outline" asChild>
+                <Link href="/responses">
+                  <MessageSquareIcon />
+                  View responses
+                </Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {actionError && (
@@ -483,7 +493,7 @@ export function DashboardView() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(form.settings.status)}>
-                          {form.settings.status}
+                          {form.settings.status=="published"?"Published":form.settings.status=="archived"?"Archived":"Draft"}
                         </Badge>
                         {form.settings.restricted && (
                           <Badge variant="outline" className="ml-1.5">
@@ -502,7 +512,7 @@ export function DashboardView() {
                           {form.settings.status === "archived" ? (
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="destructive"
                               disabled={actionSlug === form.formSlug}
                               onClick={() => handleResumeResponses(form)}
                               title="Resume responses"
@@ -517,7 +527,7 @@ export function DashboardView() {
                           ) : (
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="destructive"
                               disabled={actionSlug === form.formSlug}
                               onClick={() => handleStopResponses(form)}
                               title="Stop responses"
@@ -530,6 +540,31 @@ export function DashboardView() {
                               <span className="hidden sm:inline">Stop</span>
                             </Button>
                           )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            asChild
+                            disabled={actionSlug === form.formSlug}
+                          >
+                            <Link href={`/responses?slug=${form.formSlug}`}>
+                              <MessageSquareIcon />
+                              <span className="hidden sm:inline">Responses</span>
+                            </Link>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            asChild
+                            disabled={actionSlug === form.formSlug}
+                          >
+                            <Link href={`/edit/${form.formSlug}`}>
+                              <Edit2Icon />
+                              <span className="hidden sm:inline">Edit</span>
+                            </Link>
+                          </Button>
+
                           <Button
                             size="sm"
                             variant="destructive"

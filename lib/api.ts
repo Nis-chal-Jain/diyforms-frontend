@@ -9,6 +9,7 @@ import {
 import type {
   FormAnswerPayload,
   FormDetail,
+  FormQuestion,
   FormSummary,
 } from "@/types/form"
 import type { ApiErrorBody, ApiSuccess } from "@/types/user"
@@ -178,6 +179,41 @@ export async function fetchMyForms(): Promise<FormSummary[]> {
     baseUrl: API_FORMS,
   })
   return json.data.forms
+}
+
+export async function createForm(payload: {
+  title: string
+  description?: string
+  questions: Array<Omit<FormQuestion, "_id">>
+  settings?: Partial<FormSettings>
+  userarr?: string[]
+}): Promise<FormDetail> {
+  const json = await apiRequest<ApiSuccess<FormDetail>>("/", {
+    method: "POST",
+    body: payload,
+    auth: true,
+    baseUrl: API_FORMS,
+  })
+  return json.data
+}
+
+export async function updateForm(
+  slug: string,
+  payload: {
+    title?: string
+    description?: string
+    questions?: Array<Omit<FormQuestion, "_id">>
+    settings?: Partial<FormSettings>
+    userarr?: string[]
+  }
+): Promise<FormDetail> {
+  const json = await apiRequest<ApiSuccess<FormDetail>>(`/${slug}`, {
+    method: "POST",
+    body: payload,
+    auth: true,
+    baseUrl: API_FORMS,
+  })
+  return json.data
 }
 
 export async function stopFormResponses(slug: string): Promise<void> {
