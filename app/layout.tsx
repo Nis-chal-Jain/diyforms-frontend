@@ -1,5 +1,5 @@
 import { Geist, Geist_Mono, Merriweather } from "next/font/google"
-
+import {Analytics} from "@vercel/analytics/next" 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-provider"
@@ -28,10 +28,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", fontSans.variable, fontMono.variable, "font-serif", merriweather.variable)}
     >
+      <head>
+        <title>Diyforms - Create Minimal Forms</title>
+      </head>
       <body>
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   )
