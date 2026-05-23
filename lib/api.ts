@@ -1,4 +1,4 @@
-import { API_FORMS, API_RESPONSES, API_USERS } from "@/lib/config"
+import { API_FORMS, API_RESPONSES, API_USERS, API_ANALYTICS } from "@/lib/config"
 import type { FormResponsesPage } from "@/types/response"
 import {
   clearTokens,
@@ -253,6 +253,15 @@ export async function fetchFormResponses(
     `/${slug}?page=${page}&limit=${limit}`,
     { auth: true, baseUrl: API_RESPONSES }
   )
+  return json.data
+}
+
+export async function fetchFormAnalytics(slug: string): Promise<any> {
+  const json = await apiRequest<ApiSuccess<any>>(`/${slug}`, {
+    auth: true,
+    baseUrl: API_ANALYTICS,
+  })
+
   return json.data
 }
 
