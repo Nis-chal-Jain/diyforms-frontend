@@ -1,5 +1,5 @@
 "use client"
-
+import { track } from "@vercel/analytics"
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
@@ -66,7 +66,7 @@ const CHART_COLORS = [
   "var(--chart-5)",
 ]
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 20
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -108,9 +108,9 @@ export function ResponsesView() {
 
   const [error, setError] = useState<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<
-    "responses" | "analytics"
-  >("responses")
+  const [activeTab, setActiveTab] = useState<"responses" | "analytics">(
+    "responses"
+  )
 
   useEffect(() => {
     async function loadAnalytics() {
@@ -190,23 +190,28 @@ export function ResponsesView() {
   }
 
   async function handleDownloadXlsx() {
-    if (!formDetail || responses.length === 0) return
+    if (!formDetail || total === 0) return
 
     setDownloadLoading(true)
 
     try {
+      // Ensure we export ALL responses, not just the current page
+      let allResponses: FormResponse[] = responses
+
+      if (selectedSlug && total > responses.length) {
+        const data = await fetchFormResponses(selectedSlug, 1, total)
+        allResponses = data.responses
+      }
+
       const headers = [
         "Submitted",
         "Respondent",
         ...formDetail.questions.map((question) => question.label),
       ]
 
-      const rows = responses.map((response) => {
+      const rows = allResponses.map((response) => {
         const answerMap = new Map(
-          response.answers.map((answer) => [
-            answer.questionId,
-            answer.value,
-          ])
+          response.answers.map((answer) => [answer.questionId, answer.value])
         )
 
         return [
@@ -224,10 +229,7 @@ export function ResponsesView() {
 
       utils.book_append_sheet(workbook, worksheet, "Responses")
 
-      writeFile(
-        workbook,
-        `${formDetail.formSlug}-responses.xlsx`
-      )
+      writeFile(workbook, `${formDetail.formSlug}-responses.xlsx`)
     } catch {
       setError("Could not download responses. Please try again.")
     } finally {
@@ -235,8 +237,7 @@ export function ResponsesView() {
     }
   }
 
-  const totalCollected =
-    user?.usage?.responsesCollected ?? 0
+  const totalCollected = user?.usage?.responsesCollected ?? 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -245,9 +246,7 @@ export function ResponsesView() {
           <div className="flex items-center gap-2">
             <MessageSquareIcon className="size-5 text-primary" />
 
-            <span className="font-semibold tracking-tight">
-              Responses
-            </span>
+            <span className="font-semibold tracking-tight">Responses</span>
           </div>
 
           <Button variant="outline" size="sm" asChild>
@@ -283,15 +282,16 @@ export function ResponsesView() {
             <Button
               size="sm"
               disabled={
-                !formDetail ||
-                responses.length === 0 ||
-                downloadLoading
+                !formDetail || responses.length === 0 || downloadLoading
               }
-              onClick={handleDownloadXlsx}
+              onClick={
+                () => {
+                  track("Download XLSX")
+                  handleDownloadXlsx()
+                }
+              }
             >
-              {downloadLoading
-                ? "Downloading..."
-                : "Download XLSX"}
+              {downloadLoading ? "Downloading..." : "Download XLSX"}
             </Button>
           </CardHeader>
 
@@ -300,24 +300,18 @@ export function ResponsesView() {
               <Skeleton className="h-9 w-full max-w-md" />
             ) : forms.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No forms yet. Create a form from the dashboard
-                to collect responses.
+                No forms yet. Create a form from the dashboard to collect
+                responses.
               </p>
             ) : (
               <select
                 value={selectedSlug}
-                onChange={(e) =>
-                  handleFormChange(e.target.value)
-                }
+                onChange={(e) => handleFormChange(e.target.value)}
                 className="flex h-9 w-full max-w-md rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {forms.map((form) => (
-                  <option
-                    key={form._id}
-                    value={form.formSlug}
-                  >
-                    {form.title} (
-                    {form.totalResponses} responses)
+                  <option key={form._id} value={form.formSlug}>
+                    {form.title} ({form.totalResponses} responses)
                   </option>
                 ))}
               </select>
@@ -328,13 +322,9 @@ export function ResponsesView() {
         {selectedSlug && formDetail && (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-medium">
-                {formDetail.title}
-              </h2>
+              <h2 className="text-lg font-medium">{formDetail.title}</h2>
 
-              <Badge variant="outline">
-                {formDetail.formSlug}
-              </Badge>
+              <Badge variant="outline">{formDetail.formSlug}</Badge>
 
               <Badge>
                 {total} response
@@ -346,7 +336,7 @@ export function ResponsesView() {
               <button
                 type="button"
                 onClick={() => setActiveTab("responses")}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition text-center ${
+                className={`flex-1 rounded-md px-4 py-2 text-center text-sm font-medium transition ${
                   activeTab === "responses"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -357,8 +347,11 @@ export function ResponsesView() {
 
               <button
                 type="button"
-                onClick={() => setActiveTab("analytics")}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition text-center ${
+                onClick={() => {
+                  setActiveTab("analytics")
+                  track("View Analytics")
+                }}
+                className={`flex-1 rounded-md px-4 py-2 text-center text-sm font-medium transition ${
                   activeTab === "analytics"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -370,323 +363,273 @@ export function ResponsesView() {
           </>
         )}
 
-        {error && (
-          <p className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         {activeTab === "analytics" ? (
-  <Card>
-    <CardContent className="pt-6">
-      {analyticsLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-        </div>
-      ) : analyticsError ? (
-        <p className="text-sm text-destructive">
-          {analyticsError}
-        </p>
-      ) : !analytics ? (
-        <p className="text-sm text-muted-foreground">
-          No analytics available for this form.
-        </p>
-      ) : (
-        <div className="space-y-6">
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h3 className="text-2xl font-bold">
-              {analytics.totalResponses}
-            </h3>
+          <Card>
+            <CardContent className="pt-6">
+              {analyticsLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ) : analyticsError ? (
+                <p className="text-sm text-destructive">{analyticsError}</p>
+              ) : !analytics ? (
+                <p className="text-sm text-muted-foreground">
+                  No analytics available for this form.
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  <div className="min-w-0 overflow-hidden rounded-xl border bg-card p-3 shadow-sm sm:p-5">
+                    <h3 className="text-2xl font-bold">
+                      {analytics.totalResponses}
+                    </h3>
 
-            <p className="text-sm text-muted-foreground">
-              Total Responses
-            </p>
+                    <p className="text-sm text-muted-foreground">
+                      Total Responses
+                    </p>
 
-            {analytics.lastUpdated && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Last updated:{" "}
-                {new Date(
-                  analytics.lastUpdated
-                ).toLocaleString()}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-5">
-            {analytics.questionsAnalytics?.map(
-              (qa: any) => {
-                const question =
-                  formDetail?.questions.find(
-                    (q) =>
-                      q._id ===
-                      String(qa.questionId)
-                  )
-
-                return (
-                  <div
-                    key={String(qa.questionId)}
-                    className="rounded-xl border bg-card p-5 shadow-sm"
-                  >
-                    <div className="mb-4">
-                      <h4 className="text-base font-semibold">
-                        {question
-                          ? question.label
-                          : `Question ${qa.questionId}`}
-                      </h4>
-
-                      <p className="mt-1 text-sm text-muted-foreground capitalize">
-                        {qa.type} question
+                    {analytics.lastUpdated && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Last updated:{" "}
+                        {new Date(analytics.lastUpdated).toLocaleString()}
                       </p>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                      {qa.type === "number" &&
-                      qa.numberStats ? (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                          <div className="rounded-lg border p-3">
-                            <div className="text-xs text-muted-foreground">
-                              Count
-                            </div>
-
-                            <div className="mt-1 text-lg font-semibold text-foreground">
-                              {
-                                qa.numberStats
-                                  .count
-                              }
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border p-3">
-                            <div className="text-xs text-muted-foreground">
-                              Min
-                            </div>
-
-                            <div className="mt-1 text-lg font-semibold text-foreground">
-                              {qa.numberStats
-                                .min ?? "-"}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border p-3">
-                            <div className="text-xs text-muted-foreground">
-                              Max
-                            </div>
-
-                            <div className="mt-1 text-lg font-semibold text-foreground">
-                              {qa.numberStats
-                                .max ?? "-"}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border p-3">
-                            <div className="text-xs text-muted-foreground">
-                              Mean
-                            </div>
-
-                            <div className="mt-1 text-lg font-semibold text-foreground">
-                              {qa.numberStats
-                                .mean ?? "-"}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border p-3">
-                            <div className="text-xs text-muted-foreground">
-                              Median
-                            </div>
-
-                            <div className="mt-1 text-lg font-semibold text-foreground">
-                              {qa.numberStats
-                                .median ?? "-"}
-                            </div>
-                          </div>
-
-                          <div className="rounded-lg border p-3">
-                            <div className="text-xs text-muted-foreground">
-                              Mode
-                            </div>
-
-                            <div className="mt-1 text-lg font-semibold text-foreground">
-                              {qa.numberStats
-                                .mode ?? "-"}
-                            </div>
-                          </div>
-                        </div>
-                      ) : qa.type ===
-                          "radio" &&
-                        qa.optionStats ? (
-                        <div className="overflow-x-auto">
-                          <div className="min-w-[320px]">
-                            <div className="h-[340px] w-full">
-                              <ResponsiveContainer
-                                width="100%"
-                                height="100%"
-                              >
-                                <PieChart>
-                                  <Pie
-                                    data={
-                                      qa.optionStats
-                                    }
-                                    dataKey="count"
-                                    nameKey="option"
-                                    cx="50%"
-                                    cy="45%"
-                                    outerRadius={
-                                      95
-                                    }
-                                    innerRadius={
-                                      55
-                                    }
-                                    paddingAngle={
-                                      3
-                                    }
-                                    label={({
-                                      percent,
-                                    }) =>
-                                      percent
-                                        ? `${(
-                                            percent *
-                                            100
-                                          ).toFixed(
-                                            0
-                                          )}%`
-                                        : ""
-                                    }
-                                    labelLine={
-                                      false
-                                    }
-                                  >
-                                    {qa.optionStats.map(
-                                      (
-                                        _: any,
-                                        idx: number
-                                      ) => (
-                                        <Cell
-                                          key={`cell-${idx}`}
-                                          fill={
-                                            CHART_COLORS[
-                                              idx %
-                                                CHART_COLORS.length
-                                            ]
-                                          }
-                                        />
-                                      )
-                                    )}
-                                  </Pie>
-
-                                  <ReTooltip />
-
-                                  <Legend
-                                    verticalAlign="bottom"
-                                    height={
-                                      36
-                                    }
-                                    wrapperStyle={{
-                                      fontSize:
-                                        "12px",
-                                    }}
-                                  />
-                                </PieChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-                        </div>
-                      ) : qa.type ===
-                          "checkbox" &&
-                        qa.checkboxStats ? (
-                        <div className="overflow-x-auto">
-                          <div className="min-w-[500px]">
-                            <div className="h-[360px] w-full">
-                              <ResponsiveContainer
-                                width="100%"
-                                height="100%"
-                              >
-                                <BarChart
-                                  data={
-                                    qa.checkboxStats
-                                  }
-                                  margin={{
-                                    top: 10,
-                                    right: 20,
-                                    left: 0,
-                                    bottom: 60,
-                                  }}
-                                >
-                                  <CartesianGrid strokeDasharray="3 3" />
-
-                                  <XAxis
-                                    dataKey="option"
-                                    angle={
-                                      -20
-                                    }
-                                    textAnchor="end"
-                                    interval={0}
-                                    height={
-                                      70
-                                    }
-                                    tick={{
-                                      fontSize: 12,
-                                    }}
-                                  />
-
-                                  <YAxis allowDecimals={false} />
-
-                                  <ReTooltip />
-
-                                  <Bar
-                                    dataKey="count"
-                                    radius={[
-                                      6,
-                                      6,
-                                      0,
-                                      0,
-                                    ]}
-                                  >
-                                    {qa.checkboxStats.map(
-                                      (
-                                        _: any,
-                                        idx: number
-                                      ) => (
-                                        <Cell
-                                          key={`bar-${idx}`}
-                                          fill={
-                                            CHART_COLORS[
-                                              idx %
-                                                CHART_COLORS.length
-                                            ]
-                                          }
-                                        />
-                                      )
-                                    )}
-                                  </Bar>
-                                </BarChart>
-                              </ResponsiveContainer>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="rounded-lg border p-4">
-                          <div className="text-xs text-muted-foreground">
-                            Count
-                          </div>
-
-                          <div className="mt-1 text-xl font-semibold text-foreground">
-                            {qa.numberStats
-                              ?.count ?? 0}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
-                )
-              }
-            )}
-          </div>
-        </div>
-      )}
-    </CardContent>
-  </Card>
+
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                    {analytics.questionsAnalytics?.map((qa: any) => {
+                      const question = formDetail?.questions.find(
+                        (q) => q._id === String(qa.questionId)
+                      )
+
+                      return (
+                        <div
+                          key={String(qa.questionId)}
+                          className="min-w-0 overflow-hidden rounded-xl border bg-card p-3 shadow-sm sm:p-5"
+                        >
+                          <div className="mb-4">
+                            <h4 className="text-sm font-semibold break-words sm:text-base">
+                              {question
+                                ? question.label
+                                : `Question ${qa.questionId}`}
+                            </h4>
+
+                            <p className="mt-1 text-sm text-muted-foreground capitalize">
+                              {qa.type} question
+                            </p>
+                          </div>
+
+                          <div className="text-sm text-muted-foreground">
+                            {qa.type === "number" && qa.numberStats ? (
+                              <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-6">
+                                <div className="rounded-lg border p-2 sm:p-3">
+                                  <div className="text-xs text-muted-foreground">
+                                    Count
+                                  </div>
+
+                                  <div className="mt-1 text-lg font-semibold text-foreground">
+                                    {qa.numberStats.count}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border p-2 sm:p-3">
+                                  <div className="text-xs text-muted-foreground">
+                                    Min
+                                  </div>
+
+                                  <div className="mt-1 text-lg font-semibold text-foreground">
+                                    {qa.numberStats.min ?? "-"}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border p-2 sm:p-3">
+                                  <div className="text-xs text-muted-foreground">
+                                    Max
+                                  </div>
+
+                                  <div className="mt-1 text-lg font-semibold text-foreground">
+                                    {qa.numberStats.max ?? "-"}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border p-2 sm:p-3">
+                                  <div className="text-xs text-muted-foreground">
+                                    Mean
+                                  </div>
+
+                                  <div className="mt-1 text-lg font-semibold text-foreground">
+                                    {qa.numberStats.mean ?? "-"}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border p-2 sm:p-3">
+                                  <div className="text-xs text-muted-foreground">
+                                    Median
+                                  </div>
+
+                                  <div className="mt-1 text-lg font-semibold text-foreground">
+                                    {qa.numberStats.median ?? "-"}
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border p-2 sm:p-3">
+                                  <div className="text-xs text-muted-foreground">
+                                    Mode
+                                  </div>
+
+                                  <div className="mt-1 text-lg font-semibold text-foreground">
+                                    {qa.numberStats.mode ?? "-"}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : qa.type === "radio" && qa.optionStats ? (
+                              <div className="w-full">
+                                <div className="w-full">
+                                  <div className="h-[260px] w-full sm:h-[320px] md:h-[340px]">
+                                    <ResponsiveContainer
+                                      width="100%"
+                                      height="100%"
+                                    >
+                                      <PieChart>
+                                        <Pie
+                                          data={qa.optionStats}
+                                          dataKey="count"
+                                          nameKey="option"
+                                          cx="50%"
+                                          cy="45%"
+                                          outerRadius={95}
+                                          innerRadius={55}
+                                          paddingAngle={3}
+                                          label={({ percent }) =>
+                                            percent
+                                              ? `${(percent * 100).toFixed(0)}%`
+                                              : ""
+                                          }
+                                          labelLine={false}
+                                        >
+                                          {qa.optionStats.map(
+                                            (_: any, idx: number) => (
+                                              <Cell
+                                                key={`cell-${idx}`}
+                                                fill={
+                                                  CHART_COLORS[
+                                                    idx % CHART_COLORS.length
+                                                  ]
+                                                }
+                                              />
+                                            )
+                                          )}
+                                        </Pie>
+
+                                        <ReTooltip />
+
+                                        <Legend
+                                          verticalAlign="bottom"
+                                          height={36}
+                                          wrapperStyle={{
+                                            fontSize: "12px",
+                                          }}
+                                        />
+                                      </PieChart>
+                                    </ResponsiveContainer>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : qa.type === "checkbox" && qa.checkboxStats ? (
+                              <div className="w-full overflow-hidden">
+                                <div className="h-[260px] w-full sm:h-[320px]">
+                                  <ResponsiveContainer
+                                    width="100%"
+                                    height="100%"
+                                  >
+                                    <BarChart
+                                      data={qa.checkboxStats}
+                                      margin={{
+                                        top: 10,
+                                        right: 10,
+                                        left: 10,
+                                        bottom: 50,
+                                      }}
+                                      barCategoryGap="18%"
+                                    >
+                                      <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        vertical={false}
+                                      />
+
+                                      <XAxis
+  dataKey="option"
+  interval={0}
+  tickLine={false}
+  axisLine={false}
+  tick={{
+    fontSize: 12,
+    fill: "var(--foreground)",
+    fontWeight: 500,
+  }}
+  angle={-15}
+  textAnchor="end"
+  height={55}
+/>
+
+                                      <YAxis
+                                        allowDecimals={false}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        width={40}
+                                        tick={{
+                                          fontSize: 12,
+                                          fill: "var(--foreground)",
+                                        }}
+                                      />
+
+                                      <ReTooltip cursor={{ opacity: 0.1 }} />
+
+                                      <Bar
+                                        dataKey="count"
+                                        radius={[8, 8, 0, 0]}
+                                        maxBarSize={52}
+                                      >
+                                        {qa.checkboxStats.map(
+                                          (_: any, idx: number) => (
+                                            <Cell
+                                              key={`bar-${idx}`}
+                                              fill={
+                                                CHART_COLORS[
+                                                  idx % CHART_COLORS.length
+                                                ]
+                                              }
+                                            />
+                                          )
+                                        )}
+                                      </Bar>
+                                    </BarChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="rounded-lg border p-4">
+                                <div className="text-xs text-muted-foreground">
+                                  Count
+                                </div>
+
+                                <div className="mt-1 text-xl font-semibold text-foreground">
+                                  {qa.numberStats?.count ?? 0}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardContent className="pt-6">
@@ -698,81 +641,66 @@ export function ResponsesView() {
                 </div>
               ) : !selectedSlug ||
                 forms.length === 0 ||
-                !formDetail ? null : responses.length ===
-                0 ? (
+                !formDetail ? null : responses.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No responses for this form yet.
                 </p>
               ) : (
                 <div className="space-y-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Submitted</TableHead>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Submitted</TableHead>
 
-                        <TableHead>
-                          Respondent
-                        </TableHead>
+                          <TableHead>Respondent</TableHead>
 
-                        {formDetail.questions.map(
-                          (question) => (
-                            <TableHead
-                              key={question._id}
-                            >
+                          {formDetail.questions.map((question) => (
+                            <TableHead key={question._id}>
                               {question.label}
                             </TableHead>
-                          )
-                        )}
-                      </TableRow>
-                    </TableHeader>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
 
-                    <TableBody>
-                      {responses.map((response) => {
-                        const answerMap = new Map(
-                          response.answers.map(
-                            (answer) => [
+                      <TableBody>
+                        {responses.map((response) => {
+                          const answerMap = new Map(
+                            response.answers.map((answer) => [
                               answer.questionId,
                               answer.value,
-                            ]
+                            ])
                           )
-                        )
 
-                        return (
-                          <TableRow
-                            key={response._id}
-                          >
-                            <TableCell className="whitespace-nowrap text-muted-foreground">
-                              {formatDateTime(
-                                response.createdAt
-                              )}
-                            </TableCell>
+                          return (
+                            <TableRow key={response._id}>
+                              <TableCell className="whitespace-nowrap text-muted-foreground">
+                                {formatDateTime(response.createdAt)}
+                              </TableCell>
 
-                            <TableCell>
-                              {response.email ?? (
-                                <span className="text-muted-foreground">
-                                  Anonymous
-                                </span>
-                              )}
-                            </TableCell>
+                              <TableCell>
+                                {response.email ?? (
+                                  <span className="text-muted-foreground">
+                                    Anonymous
+                                  </span>
+                                )}
+                              </TableCell>
 
-                            {formDetail.questions.map(
-                              (question) => (
+                              {formDetail.questions.map((question) => (
                                 <TableCell
                                   key={`${response._id}-${question._id}`}
                                 >
                                   {formatAnswerValue(
-                                    answerMap.get(
-                                      question._id
-                                    ) ?? ""
+                                    answerMap.get(question._id) ?? ""
                                   )}
                                 </TableCell>
-                              )
-                            )}
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
+                              ))}
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
 
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between gap-4">
@@ -784,12 +712,8 @@ export function ResponsesView() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={
-                            page <= 1 || dataLoading
-                          }
-                          onClick={() =>
-                            setPage((p) => p - 1)
-                          }
+                          disabled={page <= 1 || dataLoading}
+                          onClick={() => setPage((p) => p - 1)}
                         >
                           <ChevronLeftIcon />
                           Previous
@@ -798,13 +722,8 @@ export function ResponsesView() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={
-                            page >= totalPages ||
-                            dataLoading
-                          }
-                          onClick={() =>
-                            setPage((p) => p + 1)
-                          }
+                          disabled={page >= totalPages || dataLoading}
+                          onClick={() => setPage((p) => p + 1)}
                         >
                           Next
                           <ChevronRightIcon />

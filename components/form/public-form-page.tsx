@@ -154,6 +154,7 @@ export function PublicFormPage({ slug }: PublicFormPageProps) {
     try {
       await submitFormResponse(slug, payload)
       setSubmitted(true)
+      setAnswers({})
     } catch (err) {
       setSubmitError(
         err instanceof ApiRequestError
@@ -238,7 +239,10 @@ export function PublicFormPage({ slug }: PublicFormPageProps) {
             <AlertDialog
               open={submitted}
               onOpenChange={(open) => {
-                if (!open) setSubmitted(false)
+                if (!open) {
+                  setSubmitted(false)
+                  setAnswers({})
+                }
               }}
             >
               <AlertDialogContent>
@@ -252,7 +256,10 @@ export function PublicFormPage({ slug }: PublicFormPageProps) {
                   <AlertDialogCancel>Close</AlertDialogCancel>
                   <AlertDialogAction
                     variant="outline"
-                    onClick={() => setSubmitted(false)}
+                    onClick={() => {
+                      setSubmitted(false)
+                      setAnswers({})
+                    }}
                   >
                     Continue
                   </AlertDialogAction>
@@ -295,7 +302,7 @@ export function PublicFormPage({ slug }: PublicFormPageProps) {
                       ))}
                     {submitError && <FieldError>{submitError}</FieldError>}
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="mt-5">
                     <Button type="submit" disabled={submitting} className="w-full">
                       {submitting && <Loader2Icon className="animate-spin" />}
                       Submit
