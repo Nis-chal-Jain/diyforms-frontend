@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Loader2Icon } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-provider"
@@ -60,6 +61,7 @@ function LoginDialog({
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -121,7 +123,20 @@ function LoginDialog({
                 autoComplete="current-password"
               />
             </Field>
-            {error && <FieldError>{error}</FieldError>}
+              {error && <FieldError>{error}</FieldError>}
+
+              <div className="text-right">
+                <button
+                  type="button"
+                  className="font-medium text-primary underline-offset-4 hover:underline text-sm"
+                  onClick={() => {
+                    onOpenChange(false)
+                    router.push("/forgot-password")
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
           </FieldGroup>
 
           <DialogFooter className="mt-6">

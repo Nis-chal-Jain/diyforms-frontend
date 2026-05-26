@@ -174,6 +174,28 @@ export async function verifyEmailOtp(otp: string): Promise<void> {
   })
 }
 
+export async function forgotPasswordSend(payload: {
+  email?: string
+  username?: string
+}): Promise<void> {
+  await apiRequest<ApiSuccess<unknown>>("/forgot-password/send-otp", {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export async function forgotPasswordVerifyOtp(payload: {
+  email?: string
+  username?: string
+  otp: string
+  newPassword: string
+}): Promise<void> {
+  await apiRequest<ApiSuccess<unknown>>("/forgot-password/verify-otp", {
+    method: "POST",
+    body: payload,
+  })
+}
+
 export async function fetchMyForms(): Promise<FormSummary[]> {
   const json = await apiRequest<ApiSuccess<{ forms: FormSummary[] }>>("/", {
     auth: true,
