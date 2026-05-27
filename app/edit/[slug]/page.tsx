@@ -373,22 +373,31 @@ export default function EditFormPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="form-status">Status</Label>
-                <Select
-                  value={settings.status}
-                  onValueChange={(value) =>
-                    setSettings({ ...settings, status: value as FormSettings["status"] })
-                  }
-                  disabled={state !== "editing" && state !== "submitting"}
-                >
-                  <SelectTrigger id="form-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Status</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={settings.status === "draft" ? "secondary" : "outline"}
+                    className="text-left p-4"
+                    onClick={() =>
+                      setSettings({ ...settings, status: "draft" })
+                    }
+                    disabled={state !== "editing" && state !== "submitting"}
+                  >
+                    <span className="font-semibold">Draft</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={settings.status === "published" ? "secondary" : "outline"}
+                    className="text-left p-4"
+                    onClick={() =>
+                      setSettings({ ...settings, status: "published" })
+                    }
+                    disabled={state !== "editing" && state !== "submitting"}
+                  >
+                    <span className="font-semibold">Published</span>
+                  </Button>
+                </div>
               </div>
 
               <div className="flex items-end">
@@ -402,7 +411,7 @@ export default function EditFormPage() {
                     disabled={state !== "editing" && state !== "submitting"}
                     className="rounded border border-input"
                   />
-                  <span className="text-sm font-medium">Restrict access</span>
+                  <span className="text-lg font-medium pb-1">Restrict access</span>
                 </label>
               </div>
             </div>

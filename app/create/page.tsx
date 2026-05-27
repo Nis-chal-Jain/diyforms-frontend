@@ -77,7 +77,7 @@ function getQuestionTypeLabel(type: QuestionType): string {
     text: "Short text",
     textarea: "Long text",
     number: "Number",
-    radio: "Multiple choice",
+    radio: "Radio buttons",
     checkbox: "Checkboxes",
     select: "Dropdown",
   }
@@ -169,7 +169,7 @@ export default function CreateFormPage() {
     updateQuestion(questionOrder, {
       options: [
         ...(questions.find((q) => q.order === questionOrder)?.options || []),
-        { label: "", value: `option-${Date.now()}` },
+        { label: "", value: "" },
       ],
     })
   }
@@ -193,7 +193,7 @@ export default function CreateFormPage() {
 
     updateQuestion(questionOrder, {
       options: question.options.map((opt, i) =>
-        i === optionIndex ? { ...opt, label } : opt
+        i === optionIndex ? { ...opt, label, value: label } : opt
       ),
     })
   }
@@ -404,22 +404,31 @@ export default function CreateFormPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="form-status">Status</Label>
-                <Select
-                  value={settings.status}
-                  onValueChange={(value) =>
-                    setSettings({ ...settings, status: value as FormSettings["status"] })
+                <Label>Status</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={settings.status === "draft" ? "secondary" : "outline"}
+                  className="text-left p-4"
+                  onClick={() =>
+                    setSettings({ ...settings, status: "draft" })
                   }
                   disabled={state !== "editing"}
                 >
-                  <SelectTrigger id="form-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <span className="font-semibold">Draft</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={settings.status === "published" ? "secondary" : "outline"}
+                  className="text-left p-4"
+                  onClick={() =>
+                    setSettings({ ...settings, status: "published" })
+                  }
+                  disabled={state !== "editing"}
+                >
+                  <span className="font-semibold">Published</span>
+                </Button>
+              </div>
               </div>
 
               <div className="flex items-end">
@@ -433,7 +442,7 @@ export default function CreateFormPage() {
                     disabled={state !== "editing"}
                     className="rounded border border-input"
                   />
-                  <span className="text-sm font-medium">Restrict access</span>
+                  <span className="text-lg font-medium pb-1">Restrict access</span>
                 </label>
               </div>
             </div>
@@ -529,7 +538,7 @@ export default function CreateFormPage() {
                         updateQuestion(question.order, {
                           type: value as QuestionType,
                           options: ["radio", "checkbox", "select"].includes(value)
-                            ? [{ label: "", value: "option-1" }]
+                            ? [{ label: "", value: "" }]
                             : undefined,
                         })
                       }

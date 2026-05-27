@@ -461,7 +461,9 @@ export function ResponsesView() {
                                   </div>
 
                                   <div className="mt-1 text-lg font-semibold text-foreground">
-                                    {qa.numberStats.mean ?? "-"}
+                                    {typeof qa.numberStats.mean === "number"
+  ? qa.numberStats.mean.toFixed(2)
+  : "-"}
                                   </div>
                                 </div>
 
@@ -471,7 +473,9 @@ export function ResponsesView() {
                                   </div>
 
                                   <div className="mt-1 text-lg font-semibold text-foreground">
-                                    {qa.numberStats.median ?? "-"}
+                                    {typeof qa.numberStats.median === "number"
+  ? qa.numberStats.median.toFixed(2)
+  : "-"}
                                   </div>
                                 </div>
 
