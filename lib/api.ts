@@ -1,4 +1,4 @@
-import { API_FORMS, API_RESPONSES, API_USERS, API_ANALYTICS } from "@/lib/config"
+import { API_ANALYTICS, API_FORMS, API_RESPONSES, API_USERS } from "@/lib/config"
 import type { FormResponsesPage } from "@/types/response"
 import {
   clearTokens,
@@ -136,6 +136,19 @@ export async function signUpUser(payload: {
     method: "POST",
     body: payload,
   })
+  return json.data.user
+}
+
+export async function googleLoginUser(payload: { idToken: string }): Promise<User> {
+  const json = await apiRequest<
+    ApiSuccess<{ user: User; accessToken: string; refreshToken: string }>
+  >("/google-login", {
+    method: "POST",
+    body: payload,
+    baseUrl: API_USERS,
+  })
+
+  setTokens(json.data.accessToken, json.data.refreshToken)
   return json.data.user
 }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google"
 import { Loader2Icon } from "lucide-react"
 
 import { useAuth } from "@/contexts/auth-provider"
@@ -44,6 +45,66 @@ export function AuthDialogs({ mode, onModeChange }: AuthDialogsProps) {
         onSwitchToLogin={() => onModeChange("login")}
       />
     </>
+  )
+}
+
+function GoogleAuthButton({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: () => void
+  onError: (message: string) => void
+}) {
+  const { googleLogin } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function handleCredentialResponse(response: { credential?: string }) {
+    if (!response.credential) {
+      onError("Google sign-in was canceled.")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      await googleLogin({ idToken: response.credential })
+      onSuccess()
+    } catch (err) {
+      onError(
+        err instanceof ApiRequestError
+          ? err.message
+          : "Google sign-in failed. Please try again."
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
+  if (!clientId) {
+    return (
+      <Button type="button" variant="outline" className="w-full" disabled>
+        Google auth is not configured
+      </Button>
+    )
+  }
+
+  return (
+    <div className="flex justify-center">
+      <GoogleOAuthProvider clientId={clientId}>
+        <GoogleLogin
+          onSuccess={handleCredentialResponse}
+          onError={() => onError("Google sign-in failed. Please try again.")}
+          useOneTap={false}
+          theme="outline"
+          size="large"
+          text="continue_with"
+          shape="rectangular"
+          width="100%"
+        />
+      </GoogleOAuthProvider>
+    </div>
   )
 }
 
@@ -99,8 +160,14 @@ function LoginDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <FieldGroup>
+        <div className="space-y-4">
+          <GoogleAuthButton
+            onSuccess={() => onOpenChange(false)}
+            onError={setError}
+          />
+
+          <form onSubmit={handleSubmit}>
+            <FieldGroup>
             <Field>
               <FieldLabel htmlFor="login-identifier">Email or username</FieldLabel>
               <Input
@@ -139,13 +206,14 @@ function LoginDialog({
               </div>
           </FieldGroup>
 
-          <DialogFooter className="mt-6">
-            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-              {isSubmitting && <Loader2Icon className="animate-spin" />}
-              Sign in
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter className="mt-6">
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                {isSubmitting && <Loader2Icon className="animate-spin" />}
+                Sign in
+              </Button>
+            </DialogFooter>
+          </form>
+        </div>
 
         <p className="text-center text-sm text-muted-foreground">
           No account?{" "}
@@ -230,8 +298,14 @@ function SignupDialog({
             </Button>
           </DialogFooter>
         ) : (
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
+          <div className="space-y-4">
+            <GoogleAuthButton
+              onSuccess={() => onOpenChange(false)}
+              onError={setError}
+            />
+
+            <form onSubmit={handleSubmit}>
+              <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="signup-name">Full name</FieldLabel>
                 <Input
@@ -278,13 +352,14 @@ function SignupDialog({
               {error && <FieldError>{error}</FieldError>}
             </FieldGroup>
 
-            <DialogFooter className="mt-6">
-              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-                {isSubmitting && <Loader2Icon className="animate-spin" />}
-                Create account
-              </Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter className="mt-6">
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                  {isSubmitting && <Loader2Icon className="animate-spin" />}
+                  Create account
+                </Button>
+              </DialogFooter>
+            </form>
+          </div>
         )}
 
         {!success && (

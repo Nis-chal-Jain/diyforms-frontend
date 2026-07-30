@@ -11,6 +11,7 @@ import {
 
 import {
   fetchCurrentUser,
+  googleLoginUser,
   loginUser,
   logoutUser,
   signUpUser,
@@ -33,6 +34,7 @@ type AuthContextValue = {
     password: string
     name: string
   }) => Promise<void>
+  googleLogin: (payload: { idToken: string }) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -85,6 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
+  const googleLogin = useCallback(
+    async (payload: Parameters<typeof googleLoginUser>[0]) => {
+      const loggedIn = await googleLoginUser(payload)
+      setUser(loggedIn)
+    },
+    []
+  )
+
   const logout = useCallback(async () => {
     await logoutUser()
     setUser(null)
@@ -97,10 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: !!user,
       login,
       signup,
+      googleLogin,
       logout,
       refreshUser,
     }),
-    [user, isLoading, login, signup, logout, refreshUser]
+    [user, isLoading, login, signup, googleLogin, logout, refreshUser]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
